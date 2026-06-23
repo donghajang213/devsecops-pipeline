@@ -1,0 +1,33 @@
+name: DevSecOps Pipeline
+
+# 언제 이 파이프라인을 실행할 것인가? (main 브랜치에 코드가 Push 될 때마다)
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest # 깃허브가 빌려주는 무료 리눅스 서버
+
+    steps:
+    # 1. 깃허브 서버로 내 코드를 다운받아오는 기본 액션
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # 2. 파이썬 환경 세팅
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    # ==========================================
+    #  [미션]: 아래에 3번과 4번 스텝을 직접 작성해 보세요!
+    # ==========================================
+    
+    # 3. Bandit 패키지를 설치하는 스텝을 작성하세요. (hint: run: pip install ...)
+    - name: Install Bandit
+      run: pip install bandit
+      
+    # 4. Bandit을 실행하여 현재 폴더(.)의 모든 코드를 검사하는 스텝을 작성하세요.
+    - name: Run Security Scan
+      run: bandit -r .
