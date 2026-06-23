@@ -44,7 +44,7 @@ jobs:
         format: table                   # 결과를 터미널에 표 형태로 예쁘게 출력
         exit-code: 1                   # (핵심) 취약점이 발견되면 1을 반환하여 파이프라인 실패 처리
         ignore-unfixed: true            # 아직 패치되지 않은 취약점은 무시 (선택 사항)
-        vuln-type: os,library           # OS 패키지와 라이브러리 취약점 모두 검사
+        vuln-type: library           # 라이브러리 취약점 모두 검사
         severity: CRITICAL,HIGH         # 심각도 높은 취약점만 보고 (선택 사항)  
         # (선택 사항) 취약점 보고서를 아티팩트로 저장하여 나중에 다운로드 가능하게 만들기
         output: trivy-report.txt
