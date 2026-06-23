@@ -12,7 +12,8 @@ COPY requirements.txt .
 # ① pip 패키지 설치
 # ② useradd 명령어로 홈 디렉토리(-m)를 가진 'appuser'라는 일반 계정 생성
 # ③ chown 명령어로 /app 폴더의 소유권을 root에서 appuser로 변경 (권한 부여)
-RUN pip install --no-cache-dir -r requirements.txt && \
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \ 
+    pip install --no-cache-dir -r requirements.txt && \
     useradd -m appuser && \
     chown -R appuser /app
 
