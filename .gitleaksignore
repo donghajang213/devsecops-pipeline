@@ -1,6 +1,0 @@
-# .gitleaksignore
-[allowlist]
-description = "테스트용으로 사용한 가짜 AWS 키 예외 처리"
-regexes = [
-    "AKIA7X3J9L2P5Q8W4E1R"
-]

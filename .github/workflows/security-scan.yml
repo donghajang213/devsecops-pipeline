@@ -1,56 +1,64 @@
 name: DevSecOps Pipeline
 
-# 언제 이 파이프라인을 실행할 것인가? (main 브랜치에 코드가 Push 될 때마다)
 on:
   push:
     branches: [ "main" ]
 
 jobs:
   security-scan:
-    runs-on: ubuntu-latest # 깃허브가 빌려주는 무료 리눅스 서버
+    runs-on: ubuntu-latest
 
     steps:
     # 1. 깃허브 서버로 내 코드를 다운받아오는 기본 액션
     - name: Checkout Code
       uses: actions/checkout@v3
 
+    # 2. Secret Scanning (GitLeaks) - 가짜 키 적발 완료!
+    # GitLeaks의 두 가지 얼굴 (Token의 유무)
+    # 1. 토큰이 있을 때 (Protect 모드: 역사학자)
+  
+    # 역할: 깃허브 서버(API)에 직접 통신을 걸어서, 이 프로젝트의 과거부터 현재까지의 모든 커밋(Commit) 기록을 통째로 가져와 뒤져봅니다.
+  
+    # 토큰의 용도: 깃허브 서버에게 "나 이 레포지토리 역사 좀 열람할게!"라고 권한을 증명하는 신분증(API Key) 역할을 합니다. 그래서 GITHUB_TOKEN을 쥐여주었을 때는 권한이 생겨서 깐깐하게 과거의 가짜 키 흔적까지 다 파헤쳤던 것입니다.
+
+    # 2. 토큰이 없을 때 (Detect 모드: 현장 요원)
+
+    # 역할: 깃허브 서버와 통신하지 않고, 방금 내 컴퓨터(Actions 러너)에 다운로드된 현재 파일들만 쓱 훑어보고 끝냅니다.
+
+    # 토큰의 용도: 내 로컬 하드디스크에 있는 텍스트 파일을 읽는 데는 인터넷 통신이나 깃허브 신분증이 필요 없죠? 우리가 파이프라인의 1번 스텝(actions/checkout)에서 이미 최신 코드를 러너 서버로 다운받아 두었기 때문에, GitLeaks는 그냥 그 파일만 텍스트 읽듯이 읽고 "지금 코드에는 키가 없네!" 하고 통과시켜 주는 것입니다.
     - name: Run GitLeaks (Secret Scanning)
       uses: gitleaks/gitleaks-action@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-
-    # 2. 파이썬 환경 세팅
+    # 3. 파이썬 환경 세팅
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: "3.10"
 
-    # ==========================================
-    #  [미션]: 아래에 3번과 4번 스텝을 직접 작성해 보세요!
-    # ==========================================
-    
-    # 3. Bandit 패키지를 설치하는 스텝을 작성하세요. (hint: run: pip install ...)
-    - name: Install Bandit
-      run: pip install bandit
-      
-    # 4. Bandit을 실행하여 현재 폴더(.)의 모든 코드를 검사하는 스텝을 작성하세요.
-    - name: Run Security Scan
-      run: bandit -r .
-    
-    # 5. 도커 이미지 빌드
+    # 4. Advanced SAST (Semgrep) - 기존 Bandit을 완벽하게 대체하는 1티어 툴
+    - name: Run Semgrep (SAST)
+      uses: returntocorp/semgrep-action@v1
+      with:
+        config: "p/python"
+
+    # 5. IaC Scanning (Checkov) - 인프라(Dockerfile) 보안 검사 요원 투입
+    - name: Run Checkov (IaC Scanning)
+      uses: bridgecrewio/checkov-action@master
+      with:
+        directory: .
+        framework: dockerfile
+
+    # 6. 도커 이미지 빌드
     - name: Build Docker Image
       run: docker build -t my-secure-app:latest .
 
-    # 6. Trivy 깃허브 마켓플레이스 액션 이용 (보안 게이트 강화)
+    # 7. SCA / Container Scanning (Trivy) - 라이브러리 검사
     - name: Run Trivy vulnerability scan
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: my-secure-app:latest
-        format: table                   # 결과를 터미널에 표 형태로 예쁘게 출력
-        exit-code: 1                   # (핵심) 취약점이 발견되면 1을 반환하여 파이프라인 실패 처리
-        ignore-unfixed: true            # 아직 패치되지 않은 취약점은 무시 (선택 사항)
-        vuln-type: library           # 라이브러리 취약점 모두 검사
-        severity: CRITICAL         # 심각도 높은 취약점만 보고 (선택 사항)  
-        # (선택 사항) 취약점 보고서를 아티팩트로 저장하여 나중에 다운로드 가능하게 만들기
-        output: trivy-report.txt
+        format: table
+        exit-code: 1
+        ignore-unfixed: true
+        vuln-type: library
+        severity: CRITICAL
