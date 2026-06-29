@@ -28,6 +28,14 @@
 - **해결 방안:** 1. Dockerfile 내 기본 도구(`pip`, `setuptools`, `wheel`)를 최신 버전으로 소독(`--upgrade`)
   2. 팀 내 현실적인 보안 임계치 합의를 통해 `severity: 'CRITICAL'`로 차단 기준 조정 및 `vuln-type: 'library'`로 스캔 범위 최적화.
 
+### 3. 동적 분석 (OWASP ZAP) - DAST
+- 빌드된 컨테이너를 실제로 기동(`docker run`)한 뒤, 살아있는 서버(`http://localhost:8000`)를 대상으로 ZAP Baseline Scan을 수행해 실제 웹 모의 해킹(패시브 탐지)을 검증.
+- **트러블슈팅 1 (권한 부족):** ZAP 액션이 스캔 결과를 GitHub Issue로 자동 생성하려다 기본 `GITHUB_TOKEN`에 `issues: write` 권한이 없어 `Resource not accessible by integration` 에러로 파이프라인이 실패.
+- **해결 방안:** 첫 도입 단계는 "리포트만 남기고 통과"가 목표이므로 `allow_issue_writing: false`로 이슈 자동 생성 기능 비활성화.
+- **트러블슈팅 2 (레거시 아티팩트 API 폐기):** `zaproxy/action-baseline@v0.12.0`이 내부적으로 사용하는 구버전 아티팩트 업로드 API가 GitHub의 레거시 아티팩트 서비스 폐기로 깨지면서 `Create Artifact Container` 400 에러로 실패.
+- **해결 방안:** deprecated upload-artifact 사용을 중단한 `v0.15.0`으로 액션 버전 업그레이드.
+- **결과:** `FAIL-NEW: 0, WARN-NEW: 3, PASS: 64` - 치명적 취약점 없이 경미한 보안 헤더 누락(X-Content-Type-Options 등) 3건만 경고로 탐지. `fail_action: false` 정책에 따라 파이프라인은 통과시키고 리포트만 적재.
+
 ---
 
 ## 🚧 현재 진행 중인 작업 (Phase 1.2 - The 5-Layer Defense Deep Dive)
@@ -37,7 +45,7 @@
 - [ ] **Secret Scanning (`GitLeaks`):** 하드코딩된 AWS Key, DB 비밀번호 등 기밀 유출 사전 차단.
 - [ ] **IaC Scanning (`Checkov`):** Dockerfile 등 인프라 설정 파일의 보안 규정 준수 여부 검사.
 - [ ] **Advanced SAST (`Semgrep`):** 기존 `Bandit`을 대체하여, 실리콘밸리 표준 정적 분석 엔진으로 코드 논리적 취약점 검사.
-- [ ] **DAST (`OWASP ZAP`):** 배포된 컨테이너를 대상으로 실제 자동화된 웹 모의 해킹(SQLi, XSS 등) 수행 및 방어력 검증.
+- [x] **DAST (`OWASP ZAP`):** 배포된 컨테이너를 대상으로 실제 자동화된 웹 모의 해킹(SQLi, XSS 등) 수행 및 방어력 검증. ✅ Phase 1.1 섹션 참고
 
 ---
 
